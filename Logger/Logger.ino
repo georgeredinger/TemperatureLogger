@@ -1,3 +1,4 @@
+// Log DS18B20 temperatures to SDcard
 
 // Include the libraries we need
 #include <OneWire.h>
@@ -189,20 +190,24 @@ void loop(void)
 
   AddresstoString(insideThermometer,insideAddress);
   Serial.print(timeStamp);
+  
   Serial.print(",");
   Serial.print(insideAddress);
+  
   Serial.print(",");
-  AddresstoString(outsideThermometer,outsideAddress);
   float tempC = sensors.getTempC(outsideThermometer);
   outsideTemperature = DallasTemperature::toFahrenheit(tempC);
   Serial.print(outsideTemperature);
 
   Serial.print(",");
+  AddresstoString(outsideThermometer,outsideAddress);
   Serial.print(outsideAddress);
+
   Serial.print(",");
   tempC = sensors.getTempC(insideThermometer);
   insideTemperature = DallasTemperature::toFahrenheit(tempC);
   Serial.print(insideTemperature);
+  
   Serial.println();
 
   File dataFile = SD.open("Temps.csv", FILE_WRITE);
