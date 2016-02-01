@@ -1,7 +1,27 @@
+
 // Include the libraries we need
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <SPI.h>
+#include <SD.h>
 
+const int chipSelect = 4;
+
+unsigned long timeStamp;
+/* DS18B20 Wiring
+ *  
+ *  
+ *  
+ *  
+ */
+
+/* SD card wiring:
+ * SD card attached to SPI bus as follows:
+ ** MOSI - pin 11
+ ** MISO - pin 12
+ ** CLK - pin 13
+ ** CS - pin 4
+*/ 
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 2
 #define TEMPERATURE_PRECISION 12
@@ -15,12 +35,23 @@ DallasTemperature sensors(&oneWire);
 // arrays to hold device addresses
 DeviceAddress insideThermometer, outsideThermometer;
 
+  
 void setup(void)
 {
   // start serial port
   Serial.begin(9600);
-  Serial.println("Dallas Temperature IC Control Library Demo");
+ Serial.print("Initializing SD card...");
 
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    return;
+  }
+  Serial.println("card initialized.");
+
+
+  
   // Start up the library
   sensors.begin();
 
@@ -98,8 +129,25 @@ void printAddress(DeviceAddress deviceAddress)
   }
 }
 
+void AddresstoString(DeviceAddress deviceAddress,char *stringAddress)
+{
+  sprintf(stringAddress, "%X%X%X%X%X%X%X%X",
+     &deviceAddress[0], &deviceAddress[1], &deviceAddress[2], &deviceAddress[3],
+     &deviceAddress[4], &deviceAddress[5], &deviceAddress[6], &deviceAddress[7]); 
+}
+
 // function to print the temperature for a device
 void printTemperature(DeviceAddress deviceAddress)
+{
+  float tempC = sensors.getTempC(deviceAddress);
+ // Serial.print("Temp C: ");
+ // Serial.print(tempC);
+ // Serial.print(" Temp F: ");
+  Serial.print(DallasTemperature::toFahrenheit(tempC));
+}
+
+// function to print the temperature for a device
+void TemperaturetoString(DeviceAddress deviceAddress, char *stringTemperature)
 {
   float tempC = sensors.getTempC(deviceAddress);
  // Serial.print("Temp C: ");
@@ -130,23 +178,54 @@ void printData(DeviceAddress deviceAddress)
  */
 void loop(void)
 { 
+  char insideAddress[32];
+  char outsideAddress[32];
+  float insideTemperature;
+  float outsideTemperature;
   // call sensors.requestTemperatures() to issue a global temperature 
   // request to all devices on the bus
   sensors.requestTemperatures();
 
-  // print the device information
 
-  printAddress(insideThermometer);
+  AddresstoString(insideThermometer,insideAddress);
+  Serial.print(timeStamp);
   Serial.print(",");
-  printTemperature(insideThermometer);
+  Serial.print(insideAddress);
   Serial.print(",");
+  AddresstoString(outsideThermometer,outsideAddress);
+  float tempC = sensors.getTempC(outsideThermometer);
+  outsideTemperature = DallasTemperature::toFahrenheit(tempC);
+  Serial.print(outsideTemperature);
 
-  printAddress(outsideThermometer);
   Serial.print(",");
-  printTemperature(outsideThermometer);
+  Serial.print(outsideAddress);
+  Serial.print(",");
+  tempC = sensors.getTempC(insideThermometer);
+  insideTemperature = DallasTemperature::toFahrenheit(tempC);
+  Serial.print(insideTemperature);
   Serial.println();
-  delay(1000);
 
-  
+  File dataFile = SD.open("Temps.csv", FILE_WRITE);
+
+  if (dataFile) {
+    dataFile.print(timeStamp);
+    dataFile.print(",");
+    dataFile.print(insideAddress);
+    dataFile.print(",");
+    dataFile.print(insideTemperature);
+    dataFile.print(",");
+    dataFile.print(outsideAddress);
+    dataFile.print(",");
+    dataFile.print(outsideTemperature);
+    dataFile.println();
+    dataFile.close();
+  }
+  // if the file isn't open, pop up an error:
+  else {
+    Serial.println("error opening Temperature.csv");
+  }
+    delay(1000);
+    timeStamp++;
+
 }
 
