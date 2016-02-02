@@ -270,9 +270,9 @@ void loop(void)
 
   do {
       while (now.Second() != 0) {
-         now = Rtc.GetDateTime();
+           now = Rtc.GetDateTime();
       }
-
+      
     switch (now.Minute()) {
       case 0:
         waitingForTheFifteen = false;
@@ -287,10 +287,12 @@ void loop(void)
         waitingForTheFifteen = false;
         break;
       default:
-        continue;
+        now = Rtc.GetDateTime();
+      continue;
     }
   } while (waitingForTheFifteen);
 
+// it now must be 0,15,30, or 45 minutes past the hour
 
   DateTimetoString(now , datestring);
 
@@ -339,7 +341,6 @@ void loop(void)
   else {
     Serial.println("error opening Temps.csv");
   }
-  delay(1000);
 
 
 }
