@@ -246,7 +246,8 @@ char outsideAddress[32];
 float insideTemperature;
 float outsideTemperature;
 char datestring[20];
-
+unsigned numberOfTemperatures;
+DeviceAddress tempDeviceAddress;
 void loop(void)
 {
 
@@ -261,18 +262,20 @@ void loop(void)
     Serial.println("RTC lost confidence in the DateTime!");
   }
 
+#define DEBUG
 
   RtcDateTime now = Rtc.GetDateTime();
 
   bool waitingForTheFifteen;
 
   waitingForTheFifteen = true;
+#ifndef DEBUG
 
   do {
-      while (now.Second() != 0) {
-           now = Rtc.GetDateTime();
-      }
-      
+    while (now.Second() != 0) {
+      now = Rtc.GetDateTime();
+    }
+
     switch (now.Minute()) {
       case 0:
         waitingForTheFifteen = false;
@@ -288,16 +291,32 @@ void loop(void)
         break;
       default:
         now = Rtc.GetDateTime();
-      continue;
+        continue;
     }
   } while (waitingForTheFifteen);
+#else
+delay(1000);
+#endif
 
-// it now must be 0,15,30, or 45 minutes past the hour
+  // it now must be 0,15,30, or 45 minutes past the hour
 
   DateTimetoString(now , datestring);
 
   sensors.requestTemperatures();
-
+  numberOfTemperatures = sensors.getDeviceCount();
+  for (unsigned i = 0; i < numberOfTemperatures; i++) {
+    if (sensors.getAddress(tempDeviceAddress, i)) {
+        datestring[0] = '\0';
+        AddresstoString(tempDeviceAddress,datestring);
+        Serial.print(i); Serial.print(","); Serial.print(datestring);Serial.print(","),Serial.println(sensors.getTempF(tempDeviceAddress));
+    }
+    else {
+      Serial.print("could not get address of ");Serial.println(i);
+    }
+    
+  }
+  
+  DateTimetoString(now , datestring);
 
   AddresstoString(insideThermometer, insideAddress);
   Serial.print(datestring);
